@@ -20,7 +20,6 @@ export default function BannerManager() {
   const [formData, setFormData] = useState({
     title: "",
     link: "",
-    description: "",
     image: null,
     imagePreview: null,
   })
@@ -61,7 +60,6 @@ export default function BannerManager() {
     setFormData({
       title: "",
       link: "",
-      description: "",
       image: null,
       imagePreview: null,
     })
@@ -74,7 +72,6 @@ export default function BannerManager() {
     setFormData({
       title: banner.title || "",
       link: banner.link || "",
-      description: banner.description || "",
       image: null, // no new image selected yet
       imagePreview: banner.image || null,
     });
@@ -94,9 +91,6 @@ export default function BannerManager() {
       const formDataToSend = new FormData()
       formDataToSend.append("title", formData.title)
       formDataToSend.append("link", formData.link)
-      if (formData.description) {
-        formDataToSend.append("description", formData.description)
-      }
       if (formData.image) {
         formDataToSend.append("image", formData.image)
       }
@@ -116,10 +110,6 @@ export default function BannerManager() {
       const formDataToSend = new FormData();
       formDataToSend.append("title", formData.title);
       formDataToSend.append("link", formData.link);
-      if (formData.description) {
-        formDataToSend.append("description", formData.description);
-      }
-      // If a new image is selected, append it; otherwise, send the original image URL.
       if (formData.image) {
         formDataToSend.append("image", formData.image);
       } else if (originalImage) {
@@ -153,7 +143,6 @@ export default function BannerManager() {
     <AdminLayout>
       <PageHeader
         title="Banners"
-        description="Manage your promotional banners"
         actions={
           <button
             onClick={handleAddClick}
@@ -202,18 +191,6 @@ export default function BannerManager() {
                     e.target.src = "/placeholder.svg?height=400&width=1200"
                   }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent flex flex-col justify-end p-6 text-white">
-                  <h3 className="text-2xl font-medium">{banner.title}</h3>
-                  {banner.description && <p className="mt-2 text-sm text-white/80">{banner.description}</p>}
-                  {banner.link && (
-                    <p className="mt-2 text-sm text-white/80">
-                      Link:{" "}
-                      <a href={banner.link} target="_blank" rel="noopener noreferrer" className="underline">
-                        {banner.link}
-                      </a>
-                    </p>
-                  )}
-                </div>
               </div>
               <div className="p-4 flex justify-end space-x-2">
                 <button onClick={() => handleEditClick(banner)} className="text-gray-600 hover:text-gray-900">
@@ -256,7 +233,6 @@ export default function BannerManager() {
       ) : (
         <EmptyState
           title="No banners found"
-          description="Get started by creating a new banner for your store."
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -343,19 +319,6 @@ export default function BannerManager() {
                             placeholder="https://example.com/page"
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
                           />
-                        </div>
-                        <div>
-                          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                            Description (optional)
-                          </label>
-                          <textarea
-                            name="description"
-                            id="description"
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            rows="3"
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-                          ></textarea>
                         </div>
                         <div>
                           <label htmlFor="image" className="block text-sm font-medium text-gray-700">
@@ -462,19 +425,6 @@ export default function BannerManager() {
                             placeholder="https://example.com/page"
                             className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
                           />
-                        </div>
-                        <div>
-                          <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700">
-                            Description (optional)
-                          </label>
-                          <textarea
-                            name="description"
-                            id="edit-description"
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            rows="3"
-                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
-                          ></textarea>
                         </div>
                         <div>
                           <label htmlFor="edit-image" className="block text-sm font-medium text-gray-700">
