@@ -1,4 +1,4 @@
-const db = require("../config/db");
+const db = require('../../config/db');
 
 // GET all categories
 exports.getAllCategories = async (req, res) => {

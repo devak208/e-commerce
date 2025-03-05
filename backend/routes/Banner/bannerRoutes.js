@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const bannerController = require('../controllers/bannerController');
-const upload = require('../middleware/upload');
+const bannerController = require('../../controllers/Banners/bannerController');
+const upload = require('../../middleware/Uploads/upload');
 
 // Existing routes
 router.get('/', bannerController.getAllBanners);

@@ -3,9 +3,9 @@ const cors = require("cors")
 const morgan = require("morgan")
 const path = require("path")
 
-const productRoutes = require("./routes/productRoutes")
-const categoryRoutes = require("./routes/categoryRoutes")
-const bannerRoutes = require("./routes/bannerRoutes")
+const productRoutes = require("./routes/products/productRoutes")
+const categoryRoutes = require("./routes/categories/categoryRoutes")
+const bannerRoutes = require("./routes/Banner/bannerRoutes")
 
 const app = express()
 
@@ -40,5 +40,5 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal Server Error", error: err.message })
 })
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 6000
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

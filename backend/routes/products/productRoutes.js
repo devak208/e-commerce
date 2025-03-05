@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
-const productController = require("../controllers/productController")
-const upload = require("../middleware/upload")
+const productController = require("../../controllers/products/productController")
+const upload = require("../../middleware/Uploads/upload")
 
 // Routes: Allow up to 4 images via field name "image"
 router.get("/", productController.getAllProducts)
