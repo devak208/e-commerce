@@ -21,7 +21,7 @@ export default function ProductFormPage() {
     price: "",
     description: "",
     stock: "",
-    category_id: "",
+    categoryId: "",
     weight: "",
     qty: "",
     images: [],
@@ -46,7 +46,7 @@ export default function ProductFormPage() {
       if (!id && response.data.length > 0) {
         setFormData((prev) => ({
           ...prev,
-          category_id: response.data[0].id,
+          categoryId: response.data[0].id,
         }))
       }
     } catch (error) {
@@ -82,7 +82,7 @@ export default function ProductFormPage() {
         price: product.price || "",
         description: product.description || "",
         stock: product.stock || "",
-        category_id: product.category_id || "",
+        categoryId: product.categoryId || "",
         weight: product.weight || "",
         qty: product.qty || "",
         images: [],
@@ -162,7 +162,7 @@ export default function ProductFormPage() {
     formDataToSend.append("price", formData.price)
     formDataToSend.append("description", formData.description)
     formDataToSend.append("stock", formData.stock)
-    formDataToSend.append("category_id", formData.category_id)
+    formDataToSend.append("categoryId", formData.categoryId)
     formDataToSend.append("weight", formData.weight || 0)
     formDataToSend.append("qty", formData.qty || 0)
 
@@ -240,13 +240,13 @@ export default function ProductFormPage() {
             </div>
 
             <div>
-              <label htmlFor="category_id" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">
                 Category
               </label>
               <select
-                name="category_id"
-                id="category_id"
-                value={formData.category_id}
+                name="categoryId"
+                id="categoryId"
+                value={formData.categoryId}
                 onChange={handleInputChange}
                 required
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"

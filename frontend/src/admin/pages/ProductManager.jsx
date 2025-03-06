@@ -80,7 +80,7 @@ export default function ProductManager() {
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesCategory = selectedCategory === "" || product.category_id.toString() === selectedCategory
+    const matchesCategory = selectedCategory === "" || product.categoryId.toString() === selectedCategory
 
     return matchesSearch && matchesCategory
   })
@@ -238,7 +238,7 @@ export default function ProductManager() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{getCategoryName(product.category_id)}</div>
+                        <div className="text-sm text-gray-900">{getCategoryName(product.categoryId)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">₹{Number(product.price).toFixed(2)}</div>

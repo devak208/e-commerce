@@ -25,8 +25,8 @@ export default function ProductDetail() {
         setProduct(productData)
 
         // Fetch related products from same category
-        if (productData.category_id) {
-          const relatedRes = await fetch(`${import.meta.env.VITE_API_URL}/api/products/category/${productData.category_id}`)
+        if (productData.categoryId) {
+          const relatedRes = await fetch(`${import.meta.env.VITE_API_URL}/api/products/category/${productData.categoryId}`)
           const relatedData = await relatedRes.json()
           // Filter out current product and limit to 4
           setRelatedProducts(relatedData.filter((p) => p.id !== productData.id).slice(0, 5))

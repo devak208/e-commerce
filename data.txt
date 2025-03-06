@@ -25,11 +25,11 @@ CREATE TABLE products (
   price DECIMAL(10,2) NOT NULL,
   description TEXT NOT NULL,
   stock INT NOT NULL,
-  category_id INT NOT NULL,
+  categoryId INT NOT NULL,
   image VARCHAR(255) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   weight DECIMAL(10,2) NOT NULL,
   qty INT NOT NULL,
-  FOREIGN KEY (category_id) REFERENCES categories(id)
+  FOREIGN KEY (categoryId) REFERENCES categories(id)
 ) ENGINE=InnoDB;
