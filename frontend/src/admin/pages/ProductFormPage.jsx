@@ -3,9 +3,13 @@
 import { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import axios from "axios"
+import { uploadAxiosInstance } from "../../user/services/axios"
 import AdminLayout from "../components/AdminLayout"
 import PageHeader from "../components/PageHeader"
 import { useToast } from "../components/ToastContext"
+
+// Maximum file size in bytes (1MB)
+const MAX_FILE_SIZE = 1 * 1024 * 1024;
 
 export default function ProductFormPage() {
   const { search } = useLocation()
@@ -15,6 +19,7 @@ export default function ProductFormPage() {
   const id = queryParams.get("id")
 
   const [isLoading, setIsLoading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [categories, setCategories] = useState([])
   const [formData, setFormData] = useState({
     name: "",
@@ -29,6 +34,7 @@ export default function ProductFormPage() {
     existingImages: [],
     imagesToRemove: [],
   })
+  const [errors, setErrors] = useState({})
 
   useEffect(() => {
     fetchCategories()
@@ -101,19 +107,129 @@ export default function ProductFormPage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors({...errors, [name]: null})
+    }
   }
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files)
-    if (files.length > 0) {
-      // If we're editing and already have images, append new ones
-      const newImagePreviews = files.map((file) => URL.createObjectURL(file))
+  // Function to compress image
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      // If file is already small enough, just return it
+      if (file.size <= MAX_FILE_SIZE) {
+        resolve(file);
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate scaling factor to target ~800px for the largest dimension
+          const maxDimension = 800;
+          if (width > height && width > maxDimension) {
+            height = (height / width) * maxDimension;
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = (width / height) * maxDimension;
+            height = maxDimension;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to blob with reduced quality
+          canvas.toBlob(
+            (blob) => {
+              // Create a new file from the blob
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              
+              console.log(`Compressed ${file.name} from ${file.size} to ${compressedFile.size} bytes`);
+              resolve(compressedFile);
+            }, 
+            'image/jpeg', 
+            0.7 // Quality parameter (0.7 = 70% quality)
+          );
+        };
+      };
+      
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) return;
+    
+    // Check if adding these files would exceed the limit
+    if (formData.imagePreview.length + files.length > 4) {
+      showToast("Maximum 4 images allowed", "error");
+      return;
+    }
+    
+    // Validate file sizes and types
+    const validFiles = [];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    for (const file of files) {
+      if (!validImageTypes.includes(file.type)) {
+        showToast(`${file.name} is not a valid image type`, "error");
+        continue;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        showToast(`${file.name} is too large (max 5MB)`, "error");
+        continue;
+      }
+      
+      validFiles.push(file);
+    }
+    
+    if (validFiles.length === 0) return;
+    
+    // Show loading toast for compression
+    if (validFiles.length > 0) {
+      showToast("Optimizing images...", "info");
+    }
+    
+    try {
+      // Compress all images
+      const compressedFiles = await Promise.all(
+        validFiles.map(file => compressImage(file))
+      );
+      
+      // Create previews
+      const newImagePreviews = compressedFiles.map(file => URL.createObjectURL(file));
+      
       setFormData({
         ...formData,
-        images: [...formData.images, ...files],
+        images: [...formData.images, ...compressedFiles],
         imagePreview: [...formData.imagePreview, ...newImagePreviews],
-      })
+      });
+      
+      showToast(`${compressedFiles.length} image(s) optimized and ready to upload`, "success");
+    } catch (error) {
+      console.error("Error processing images:", error);
+      showToast("Error processing images", "error");
     }
   }
 
@@ -153,47 +269,82 @@ export default function ProductFormPage() {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = "Valid price is required";
+    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.stock || parseInt(formData.stock) < 0) newErrors.stock = "Valid stock is required";
+    if (!formData.categoryId) newErrors.categoryId = "Category is required";
+    
+    if (!id && formData.imagePreview.length === 0) {
+      newErrors.images = "At least one image is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    const formDataToSend = new FormData()
-    formDataToSend.append("name", formData.name)
-    formDataToSend.append("price", formData.price)
-    formDataToSend.append("description", formData.description)
-    formDataToSend.append("stock", formData.stock)
-    formDataToSend.append("categoryId", formData.categoryId)
-    formDataToSend.append("weight", formData.weight || 0)
-    formDataToSend.append("qty", formData.qty || 0)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      showToast("Please fix the form errors", "error");
+      return;
+    }
+    
+    setIsLoading(true);
+    setUploadProgress(0);
+
+    const formDataToSend = new FormData();
+    formDataToSend.append("name", formData.name);
+    formDataToSend.append("price", formData.price);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("stock", formData.stock);
+    formDataToSend.append("categoryId", formData.categoryId);
+    formDataToSend.append("weight", formData.weight || 0);
+    formDataToSend.append("qty", formData.qty || 0);
 
     // Append each image file
     formData.images.forEach((image) => {
-      formDataToSend.append("image", image)
-    })
+      formDataToSend.append("image", image);
+    });
 
     // If editing, include the list of images to remove
     if (id && formData.imagesToRemove && formData.imagesToRemove.length > 0) {
-      formDataToSend.append("imagesToRemove", JSON.stringify(formData.imagesToRemove))
+      formDataToSend.append("imagesToRemove", JSON.stringify(formData.imagesToRemove));
     }
 
     try {
       if (id) {
         // Update existing product
-        await axios.put(`${import.meta.env.VITE_API_URL}/api/products/${id}`, formDataToSend)
-        showToast("Product updated successfully", "success")
+        await uploadAxiosInstance.put(`/api/products/${id}`, formDataToSend, {
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        });
+        showToast("Product updated successfully", "success");
       } else {
         // Create new product
-        await axios.post(`${import.meta.env.VITE_API_URL}/api/products`, formDataToSend)
-        showToast("Product created successfully", "success")
+        await uploadAxiosInstance.post("/api/products", formDataToSend, {
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+          }
+        });
+        showToast("Product created successfully", "success");
       }
 
       // Navigate back to products list
-      navigate("/admin/products")
+      navigate("/admin/products");
     } catch (error) {
-      console.error("Error saving product:", error)
-      showToast(error.response?.data?.message || "Failed to save product", "error")
+      console.error("Error saving product:", error);
+      showToast(error.response?.data?.message || "Failed to save product", "error");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
+      setUploadProgress(0);
     }
   }
 
@@ -234,9 +385,9 @@ export default function ProductFormPage() {
                 id="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                className={`mt-1 block w-full border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500`}
               />
+              {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
             </div>
 
             <div>
@@ -248,8 +399,7 @@ export default function ProductFormPage() {
                 id="categoryId"
                 value={formData.categoryId}
                 onChange={handleInputChange}
-                required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                className={`mt-1 block w-full border ${errors.categoryId ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500`}
               >
                 <option value="">Select a category</option>
                 {categories.map((category) => (
@@ -258,6 +408,7 @@ export default function ProductFormPage() {
                   </option>
                 ))}
               </select>
+              {errors.categoryId && <p className="mt-1 text-sm text-red-500">{errors.categoryId}</p>}
             </div>
 
             <div>
@@ -272,9 +423,9 @@ export default function ProductFormPage() {
                 step="0.01"
                 value={formData.price}
                 onChange={handleInputChange}
-                required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                className={`mt-1 block w-full border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500`}
               />
+              {errors.price && <p className="mt-1 text-sm text-red-500">{errors.price}</p>}
             </div>
 
             <div>
@@ -288,9 +439,9 @@ export default function ProductFormPage() {
                 min="0"
                 value={formData.stock}
                 onChange={handleInputChange}
-                required
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+                className={`mt-1 block w-full border ${errors.stock ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500`}
               />
+              {errors.stock && <p className="mt-1 text-sm text-red-500">{errors.stock}</p>}
             </div>
 
             <div>
@@ -305,7 +456,6 @@ export default function ProductFormPage() {
                 step="0.01"
                 value={formData.weight}
                 onChange={handleInputChange}
-                required
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
               />
             </div>
@@ -321,7 +471,6 @@ export default function ProductFormPage() {
                 min="0"
                 value={formData.qty}
                 onChange={handleInputChange}
-                required
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
               />
             </div>
@@ -337,9 +486,9 @@ export default function ProductFormPage() {
               rows="4"
               value={formData.description}
               onChange={handleInputChange}
-              required
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500"
+              className={`mt-1 block w-full border ${errors.description ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-gray-500 focus:border-gray-500`}
             ></textarea>
+            {errors.description && <p className="mt-1 text-sm text-red-500">{errors.description}</p>}
           </div>
 
           <div>
@@ -351,7 +500,7 @@ export default function ProductFormPage() {
                 type="file"
                 name="images"
                 id="images"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/gif,image/webp"
                 multiple
                 onChange={handleImageChange}
                 className="sr-only"
@@ -377,6 +526,10 @@ export default function ProductFormPage() {
                   : "No images selected"}
               </span>
             </div>
+            {errors.images && <p className="mt-1 text-sm text-red-500">{errors.images}</p>}
+            <p className="mt-1 text-xs text-gray-500">
+              Maximum file size: 5MB. Recommended size: 800x800px. Files will be automatically optimized.
+            </p>
           </div>
 
           {formData.imagePreview.length > 0 && (
@@ -413,6 +566,16 @@ export default function ProductFormPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {uploadProgress > 0 && (
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-gray-800 h-2.5 rounded-full" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+              <p className="text-sm text-gray-600 mt-1">Uploading: {uploadProgress}%</p>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useUser } from "../../context/UserContext"
 
@@ -9,8 +9,10 @@ export default function Header() {
   const [categories, setCategories] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const { cart, isAuthenticated, logout } = useUser()
   const navigate = useNavigate()
+  const profileRef = useRef(null)
 
   // Fetch categories
   useEffect(() => {
@@ -29,9 +31,32 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Handle clicks outside profile dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [])
+
   const handleSearch = (e) => {
     e.preventDefault()
     navigate(`/products?search=${searchQuery}`)
+  }
+
+  const toggleProfileMenu = () => {
+    setIsProfileOpen(!isProfileOpen)
+  }
+
+  const handleLogout = () => {
+    logout()
+    setIsProfileOpen(false)
   }
 
   const cartItemsCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0
@@ -52,12 +77,12 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+          <nav className="hidden md:flex items-center space-x-6 lg:space-x-10">
+            <Link to="/" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors px-1">
               Home
             </Link>
             <div className="relative group">
-              <button className="flex items-center text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+              <button className="flex items-center text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors px-1">
                 Categories
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -67,7 +92,7 @@ export default function Header() {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="ml-1 h-4 w-4 transition-transform group-hover:rotate-180"
+                  className="ml-1.5 h-4 w-4 transition-transform group-hover:rotate-180"
                 >
                   <path d="m6 9 6 6 6-6" />
                 </svg>
@@ -84,18 +109,18 @@ export default function Header() {
                 ))}
               </div>
             </div>
-            <Link to="/products" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+            <Link to="/products" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors px-1">
               All Products
             </Link>
           </nav>
 
           {/* Search, Cart, and Account */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4 md:space-x-6">
             <form onSubmit={handleSearch} className="hidden md:flex relative">
               <input
                 type="text"
                 placeholder="Search products..."
-                className="w-64 px-4 py-2 border border-gray-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
+                className="w-48 lg:w-64 px-4 py-2 border border-gray-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300 transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -119,7 +144,7 @@ export default function Header() {
               </button>
             </form>
 
-            <Link to="/cart" className="relative group">
+            <Link to="/cart" className="relative group p-1.5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -142,8 +167,12 @@ export default function Header() {
             </Link>
 
             {isAuthenticated ? (
-              <div className="relative group">
-                <button className="flex items-center text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+              <div className="relative" ref={profileRef}>
+                <button 
+                  onClick={toggleProfileMenu}
+                  aria-expanded={isProfileOpen}
+                  className="flex items-center text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors p-1.5"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -158,15 +187,27 @@ export default function Header() {
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 </button>
-                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-sm bg-white p-2 shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                  <Link to="/profile" className="block rounded-sm px-3 py-2 text-sm text-gray-800 hover:bg-gray-50">
+                <div 
+                  className={`absolute right-0 top-full z-50 mt-2 w-48 rounded-sm bg-white p-2 shadow-lg transition-all duration-200 ${
+                    isProfileOpen ? "opacity-100 visible" : "opacity-0 invisible"
+                  }`}
+                >
+                  <Link 
+                    to="/profile" 
+                    className="block rounded-sm px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
                     Profile
                   </Link>
-                  <Link to="/orders" className="block rounded-sm px-3 py-2 text-sm text-gray-800 hover:bg-gray-50">
+                  <Link 
+                    to="/orders" 
+                    className="block rounded-sm px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
                     Orders
                   </Link>
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="block w-full text-left rounded-sm px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
                   >
                     Logout
@@ -174,7 +215,7 @@ export default function Header() {
                 </div>
               </div>
             ) : (
-              <Link to="/login" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+              <Link to="/login" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors p-1.5">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -192,7 +233,7 @@ export default function Header() {
             )}
 
             {/* Mobile menu button */}
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden">
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden p-1.5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -242,12 +283,47 @@ export default function Header() {
               </div>
             </form>
             <nav className="flex flex-col space-y-4">
-              <Link to="/" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+              <Link 
+                to="/" 
+                className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 Home
               </Link>
-              <Link to="/products" className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors">
+              <Link 
+                to="/products" 
+                className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
                 All Products
               </Link>
+              {isAuthenticated && (
+                <>
+                  <Link 
+                    to="/profile" 
+                    className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  <Link 
+                    to="/orders" 
+                    className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Orders
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="text-left text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              )}
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-900">Categories</p>
                 <div className="pl-4 space-y-2">
@@ -256,6 +332,7 @@ export default function Header() {
                       key={category.id}
                       to={`/products?category=${category.id}`}
                       className="block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
                     >
                       {category.name}
                     </Link>
@@ -269,4 +346,3 @@ export default function Header() {
     </header>
   )
 }
-

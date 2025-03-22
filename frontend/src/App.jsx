@@ -15,23 +15,29 @@ import Footer from "./user/components/Footer";
 import Home from "./user/pages/Home";
 import ProductList from "./user/pages/ProductList";
 import ProductDetail from "./user/pages/ProductDetail";
+import Login from "./user/pages/auth/login";
+import Register from "./user/pages/auth/register";
+import Profile from "./user/pages/Profile";
+import Orders from "./user/pages/Orders";
+import OrderDetail from "./user/pages/OrderDetail";
+import Cart from "./user/pages/Cart";
+import Checkout from "./user/pages/Checkout";
+import OrderSuccess from "./user/pages/order-success";
 
 // Admin Pages
 import Dashboard from "./admin/pages/Dashboard";
 import ProductManager from "./admin/pages/ProductManager";
+import AdminOrders from "./admin/pages/Orders";
+import Users from "./admin/pages/Users";
+import ProductFormPage from "./admin/pages/ProductFormPage";
 import CategoryManager from "./admin/pages/CategoryManager";
 import BannerManager from "./admin/pages/BannerManager";
-import ProductFormPage from "./admin/pages/ProductFormPage";
+import AdminOrderDetail from "./admin/pages/Orders/OrderDetail";
+import UserDetails from "./admin/pages/Users/UserDetails";
 
-// Protected Route Component - Only for user routes now
-const ProtectedRoute = ({ children }) => {
-  // For user routes, check UserContext
-  const token = localStorage.getItem("userToken");
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
+// Auth Components
+import ProtectedRoute from "./user/components/auth/ProtectedRoute";
+import PublicRoute from "./user/components/auth/PublicRoute";
 
 export default function App() {
   return (
@@ -39,19 +45,170 @@ export default function App() {
       <UserProvider>
         <AdminProvider>
           <Routes>
-            {/* Admin Routes */}
-            <Route path="admin">
-              <Route path="" element={<Dashboard />} />
-              <Route path="products" element={<ProductManager />} />
-              {/* Define product-form route here */}
-              <Route path="product-form" element={<ProductFormPage />} />
+            {/* Public Auth Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Header />
+                  <Login />
+                  <Footer />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Header />
+                  <Register />
+                  <Footer />
+                </PublicRoute>
+              }
+            />
 
-              <Route path="categories" element={<CategoryManager />} />
-              <Route path="banners" element={<BannerManager />} />
-              {/* Additional admin routes as needed */}
+            {/* Protected User Routes */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Profile />
+                  <Footer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Orders />
+                  <Footer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders/:id"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <OrderDetail />
+                  <Footer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cart"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Cart />
+                  <Footer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <Checkout />
+                  <Footer />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/order-success"
+              element={
+                <ProtectedRoute>
+                  <Header />
+                  <OrderSuccess />
+                  <Footer />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin Routes */}
+            <Route path="/admin">
+              <Route
+                path=""
+                element={
+                  
+                    <Dashboard />
+                
+                }
+              />
+              <Route
+                path="dashboard"
+                element={
+                  
+                    <Dashboard />
+            
+                }
+              />
+              <Route
+                path="products"
+                element={
+                  
+                    <ProductManager />
+         
+                }
+              />
+              <Route
+                path="orders"
+                element={
+                
+                    <AdminOrders />
+           
+                }
+              />
+              <Route
+                path="orders/:id"
+                element={
+                  <AdminOrderDetail />
+                }
+              />
+              <Route
+                path="users"
+                element={
+                
+                    <Users />
+          
+                }
+              />
+              <Route
+                path="users/:id"
+                element={
+                  <UserDetails />
+                }
+              />
+              <Route
+                path="product-form"
+                element={
+                
+                    <ProductFormPage />
+              
+                }
+              />
+              <Route
+                path="categories"
+                element={
+                  
+                    <CategoryManager />
+                 
+                }
+              />
+              <Route
+                path="banners"
+                element={
+                 
+                    <BannerManager />
+                }
+              />
             </Route>
 
-            {/* User Routes */}
+            {/* Public User Routes */}
             <Route
               path="/"
               element={
@@ -82,46 +239,9 @@ export default function App() {
                 </>
               }
             />
-            <Route
-              path="/cart"
-              element={
-                <>
-                  <Header />
-                  {/* <Cart /> */}
-                  <Footer />
-                </>
-              }
-            />
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Header />
-                  {/* <Checkout /> */}
-                  <Footer />
-                </ProtectedRoute>
-              }
-            />
 
-            {/* Error Routes */}
-            <Route
-              path="/404"
-              element={
-                <>
-                  <Header />
-                  <div className="min-h-[60vh] flex items-center justify-center">
-                    <div className="text-center">
-                      <h1 className="text-4xl font-bold mb-4">404</h1>
-                      <p className="text-gray-500 mb-4">Page not found</p>
-                      <a href="/" className="btn btn-primary">
-                        Go Home
-                      </a>
-                    </div>
-                  </div>
-                  <Footer />
-                </>
-              }
-            />
+            {/* 404 */}
+            <Route path="/404" element={<Navigate to="/404" replace />} />
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
         </AdminProvider>

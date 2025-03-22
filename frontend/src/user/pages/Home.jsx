@@ -7,6 +7,9 @@ import Banner from "../components/Banner"
 import ProductCard from "../components/ProductCard"
 import CategoryCard from "../components/CategoryCard"
 
+// First, add axios default config at the top
+axios.defaults.withCredentials = true;
+
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState([])
   const [newArrivals, setNewArrivals] = useState([])
@@ -26,20 +29,45 @@ export default function Home() {
         setIsLoading(true)
         setError(null)
 
-        // Use Promise.all to fetch data in parallel
-        const [productsResponse, categoriesResponse] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_URL}/api/products`).catch((err) => {
-            console.error("Error fetching products:", err)
-            return { data: [] }
-          }),
-          axios.get(`${import.meta.env.VITE_API_URL}/api/categories`).catch((err) => {
-            console.error("Error fetching categories:", err)
-            return { data: [] }
-          }),
-        ])
+        // Add timeout to the requests
+        const timeout = 10000; // 10 seconds
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-        const products = Array.isArray(productsResponse.data) ? productsResponse.data : []
-        const categoriesData = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []
+        const [productsResponse, categoriesResponse] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URL}/api/products`, {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            withCredentials: true,
+            signal: controller.signal,
+            timeout: timeout
+          }),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/categories`, {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            withCredentials: true,
+            signal: controller.signal,
+            timeout: timeout
+          })
+        ]).finally(() => clearTimeout(timeoutId));
+
+        // Add error checking for the responses
+        if (!productsResponse.data) {
+          console.error("No product data received");
+          throw new Error("Failed to fetch products");
+        }
+
+        const products = Array.isArray(productsResponse.data) 
+          ? productsResponse.data 
+          : productsResponse.data.products || [];
+
+        const categoriesData = Array.isArray(categoriesResponse.data) 
+          ? categoriesResponse.data 
+          : categoriesResponse.data.categories || [];
 
         // Sort products by date to get new arrivals (with fallback for missing date fields)
         const sortedByDate = [...products].sort((a, b) => {
@@ -56,7 +84,9 @@ export default function Home() {
         setCategories(categoriesData)
       } catch (err) {
         console.error("Error fetching homepage data:", err)
-        setError("Failed to load products. Please try again later.")
+        setError(err.name === "AbortError" 
+          ? "Request timed out. Please try again." 
+          : "Failed to load products. Please try again later.")
       } finally {
         setIsLoading(false)
       }

@@ -1,25 +1,28 @@
-import { Link, useLocation } from "react-router-dom"
-import { useAdmin } from "../../context/AdminContext"
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAdmin } from "../../context/AdminContext";
 
-export default function Sidebar({ isMobileSidebarOpen, setIsMobileSidebarOpen }) {
-  const location = useLocation()
-  const { logout } = useAdmin()
+const Sidebar = ({ isMobileSidebarOpen, setIsMobileSidebarOpen }) => {
+  const location = useLocation();
+  const { logout } = useAdmin();
 
   const navigation = [
     { name: "Dashboard", path: "/admin", icon: "dashboard" },
+    { name: "Orders", path: "/admin/orders", icon: "shopping-cart" },
     { name: "Products", path: "/admin/products", icon: "shopping-bag" },
     { name: "Categories", path: "/admin/categories", icon: "tag" },
     { name: "Banners", path: "/admin/banners", icon: "image" },
-    { name: "Orders", path: "/admin/orders", icon: "shopping-cart" },
     { name: "Customers", path: "/admin/customers", icon: "users" },
     { name: "Settings", path: "/admin/settings", icon: "settings" },
-  ]
+  ];
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
   const renderIcon = (icon) => {
     // ...switch statement for icon rendering (same as before)
-  }
+  };
 
   return (
     <>
@@ -108,5 +111,7 @@ export default function Sidebar({ isMobileSidebarOpen, setIsMobileSidebarOpen })
         </div>
       </aside>
     </>
-  )
-}
+  );
+};
+
+export default Sidebar;
